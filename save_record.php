@@ -5,14 +5,28 @@ include 'db.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!isset($_SESSION['username'])) {
-        header("Location: login.php");
+        header("Location: index.php");
         exit;
     }
 
-    $user_id = $_SESSION['username']; 
+    $user_id = $_SESSION['username'];
+    $record_type_id = $_POST['record_type_id'];
 
-    $sql = "INSERT INTO record_requests (request_id, user_id, record_type_id)
-        VALUES (UUID(), ?, ?)";
+    $checkUser = $conn->prepare("SELECT * FROM users WHERE username = ?");
+    $checkUser->execute([$user_id]);
+    if ($checkUser->rowCount() === 0) {
+        die("Error: User does not exist in the database.");
+    }
+
+    $checkType = $conn->prepare("SELECT * FROM record_types WHERE id = ?");
+    $checkType->execute([$record_type_id]);
+    if ($checkType->rowCount() === 0) {
+        die("Error: Selected record type does not exist.");
+    }
+
+    $sql = "INSERT INTO record_requests 
+            (request_id, user_id, record_type_id, status, date_requested) 
+            VALUES (UUID(), ?, ?, 'Pending', NOW())";
 
     $stmt = $conn->prepare($sql);
 
@@ -20,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header("Location: records.php?success=1");
         exit;
     } else {
-        echo "Database Error";
+        echo "Database Error: Could not submit request.";
     }
 }
 ?>
